@@ -2,8 +2,11 @@
 Script to collect and assign traffic accident data from years (2017-2018). 
 Original data taken from denvergov.org/opendata.
 Does not take into account severity of incident.
-Developed on Windows 10 using Python 2.7 and AMPL
+Developed on Windows 10 using Python 2.7.x
 by Lauren Hearn, October/November 2018
+
+For more info, see wiki page at 
+http://math.ucdenver.edu/~sborgwardt/wiki/index.php/Mapping_Accident_Prone_Intersections
 '''
 
 import pandas as pd
@@ -75,7 +78,7 @@ def Assign_ea_point(m, j):
     return sum((m.y[i,j]) for i in m.K) == 1
 m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
-# Clisters should have upper and lower bounds on number of members
+# Clusters should have upper and lower bounds on number of members
 def Cluster_size(m, i):
     return (lowb, sum((m.y[i,j]) for j in m.N), upb)
 m.Size = Constraint(m.K, rule=Cluster_size)
@@ -90,80 +93,9 @@ results = opt.solve(m)
 
 print results
 
-'''
-# Kmeans clustering
-Xmin = X.min()
-Xmax = X.max()
-Ymin = Y.min()
-Ymax = Y.max()
-
-kmeans = KMeans(n_clusters=10)
-kmeans.fit(df)
-labels = kmeans.predict(df)
-centroids = kmeans.cluster_centers_
-
-fig = plt.figure(figsize=(10, 10))
-colmap = {1: 'C0', 2: 'C1', 3: 'C2', 4: 'C3', 5: 'C4', 6: 'C5', 7: 'C6', 8: 'C7', 9: 'C8', 10: 'C9'}
-colors = map(lambda x: colmap[x+1], labels)
-
-plt.scatter(df['x'], df['y'], color=colors, alpha=0.5, edgecolor='k')
-for idx, centroid in enumerate(centroids):
-    plt.scatter(*centroid, color=colmap[idx+1])
-plt.xlim(Xmin, Xmax)
-plt.ylim(Ymin, Ymax)
-plt.show()
-'''
 
 '''
-### Clustering through AMPL
-# Set solver, AMPL object
-ampl = AMPL()
-ampl.setOption('solver', 'cplex')
-
-# Read the model
-direc = os.getcwd()
-direc = direc + '\cluster.mod'
-ampl.read('cluster.mod')
-
-## Set parameters with ampl.getParameter() - this is not insignificant!! docs/examples set an inefficient precident!
-# Scalar Parameters
-N = ampl.getParameter('N')
-N.set(rows)
-M = ampl.getParameter('M')
-M.set(columns)
-K = ampl.getParameter('K')
-K.set(clusters)
-
-up = ampl.getParameter('up')
-up.set(upb)
-low = ampl.getParameter('low')
-low.set(lowb)
-
-# vectorial params
-#centroids['s'] = list(zip(centroids.x,centroids.y)) 
-#cent = centroids['s']
-#cent = cent.tolist()
-#print type(cent)
-#dfs = adf.setValues(cent)
-xcol = centroids['x']
-ycol = centroids['y']
-cent = xcol.align(ycol)
-s = ampl.getParameter('s')
-s.setValues(cent)
-print s
-
-point = ampl.getParameter('point')
-point.setValues(dfn)
-
-# solve
-ampl.solve()
-# Get objective entity by AMPL name      
-Cluster = ampl.getObjective('cluster')              
-print "Objective is:", Cluster.value()
-'''
-
-'''
-Bibliography:
+Partial Bibliography:
 https://mubaris.com/posts/kmeans-clustering/
 http://benalexkeen.com/k-means-clustering-in-python/
 https://arxiv.org/pdf/1308.4004.pdf
