@@ -41,6 +41,55 @@ df = pd.DataFrame({
 plt.scatter(X, Y, c='black', s=7)
 plt.show()
 
+# set up data
+clusters = input('How many clusters would you like to use (try 7)? ')
+centroids = df.sample(clusters)
+centroids.reset_index(drop=True, inplace=True)
+rows, columns = df.shape
+upb = int(math.ceil(rows/clusters))
+lowb = int(math.floor(rows/clusters))
+
+print centroids
+
+# Use Pyomo
+from pyomo.environ import *
+from pyomo.dae import *
+from pyomo.opt import SolverFactory
+
+m = ConcreteModel()
+
+m.N = RangeSet(rows-1)
+m.M = RangeSet(columns-1)
+m.K = RangeSet(clusters-1)
+m.up = Param(initialize = upb)
+m.low = Param(initialize = lowb)
+
+# call data from Pandas dataFrame directly
+s = centroids.iloc()
+point = df.iloc()
+
+m.y = Var(m.K,m.N,domain=Binary)
+
+# Each point should belong to exactly one cluster
+def Assign_ea_point(m, j):
+    return sum((m.y[i,j]) for i in m.K) == 1
+m.Assign = Constraint(m.N, rule=Assign_ea_point)
+
+# Clisters should have upper and lower bounds on number of members
+def Cluster_size(m, i):
+    return (lowb, sum((m.y[i,j]) for j in m.N), upb)
+m.Size = Constraint(m.K, rule=Cluster_size)
+
+# Objective function
+def ObjRule(m):
+    return sum((m.y[i,j] * sum((s[i,d]*s[i,d]- 2*point[j,d]*s[i,d]) for d in m.M)) for i in m.K for j in m.N)
+    
+m.Obj = Objective(rule=ObjRule, sense=minimize)
+opt = SolverFactory('glpk')
+results = opt.solve(m)
+
+print results
+
 '''
 # Kmeans clustering
 Xmin = X.min()
@@ -64,49 +113,6 @@ plt.xlim(Xmin, Xmax)
 plt.ylim(Ymin, Ymax)
 plt.show()
 '''
-# set up data
-clusters = input('How many clusters would you like to use (try 7)? ')
-centroids = df.sample(clusters)
-centroids.reset_index(drop=True, inplace=True)
-rows, columns = df.shape
-upb = math.ceil(rows/clusters)
-lowb = math.floor(rows/clusters)
-
-# Use Pyomo
-from pyomo.environ import *
-from pyomo.dae import *
-
-m = ConcreteModel()
-
-m.N = RangeSet(rows)
-m.M = RangeSet(columns)
-m.K = RangeSet(clusters)
-m.up = Param(initialize = upb)
-m.low = Param(initialize = lowb)
-
-m.s = Param(m.K,m.M,centroids)
-m.point = Param(m.N,m.M,df)
-
-m.y = Var(m.K,m.N)
-
-# Each point should belong to exactly one cluster
-def Assign_ea_point(m):
-    return sum((m.y[i,:] == 1) for i in m.K)
-m.Assign = Constraint(rule=Assign_ea_point)
-
-# Clisters should have upper and lower bounds on number of members
-def Cluster_size(m):
-    return (m.low, sum((m.y[:,j]) for j in m.N), m.up)
-m.Size = Constraint(rule=Cluster_size)
-
-# Objective function
-def ObjRule(m):
-    return sum(((m.y[i,j]) for i in m.K for j in m.N) * sum(m.s[i,d]*m.s[i,d]- 2*m.point[j,d]*m.s[i,d]) for d in m.M)
-    
-m.Obj = Objective(rule=ObjRule, sense=minimize)
-
-opt.solve(m)
-
 
 '''
 ### Clustering through AMPL
@@ -161,6 +167,4 @@ Bibliography:
 https://mubaris.com/posts/kmeans-clustering/
 http://benalexkeen.com/k-means-clustering-in-python/
 https://arxiv.org/pdf/1308.4004.pdf
-
-
 '''
