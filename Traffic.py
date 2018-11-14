@@ -49,8 +49,10 @@ clusters = input('How many clusters would you like to use (try 7)? ')
 centroids = df.sample(clusters)
 centroids.reset_index(drop=True, inplace=True)
 rows, columns = df.shape
-upb = int(math.ceil(rows/clusters))
-lowb = int(math.floor(rows/clusters))
+a = float(rows)/float(clusters)
+upb = int(math.ceil(a))
+lowb = int(math.floor(a))
+print upb, lowb
 
 print centroids
 
@@ -64,8 +66,6 @@ m = ConcreteModel()
 m.N = RangeSet(rows-1)
 m.M = RangeSet(columns-1)
 m.K = RangeSet(clusters-1)
-m.up = Param(initialize = upb)
-m.low = Param(initialize = lowb)
 
 # call data from Pandas dataFrame directly
 s = centroids.iloc()
@@ -80,12 +80,12 @@ m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
 # Clusters should have upper and lower bounds on number of members
 def Cluster_size(m, i):
-    return (lowb, sum((m.y[i,j]) for j in m.N), upb)
+    return (lowb-50, sum((m.y[i,j]) for j in m.N), upb+50)
 m.Size = Constraint(m.K, rule=Cluster_size)
 
 # Objective function
 def ObjRule(m):
-    return sum((m.y[i,j] * sum((s[i,d]*s[i,d]- 2*point[j,d]*s[i,d]) for d in m.M)) for i in m.K for j in m.N)
+    return sum((m.y[i,j] * sum((point[j,d]*point[j,d]-2*point[j,d]*s[i,d]+s[i,d]*s[i,d]) for d in m.M)) for i in m.K for j in m.N)
     
 m.Obj = Objective(rule=ObjRule, sense=minimize)
 opt = SolverFactory('glpk')
