@@ -80,7 +80,7 @@ m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
 # Clusters should have upper and lower bounds on number of members
 def Cluster_size(m, i):
-    return (lowb-50, sum((m.y[i,j]) for j in m.N), upb+50)
+    return (lowb-100, sum((m.y[i,j]) for j in m.N), upb+100)
 m.Size = Constraint(m.K, rule=Cluster_size)
 
 # Objective function
