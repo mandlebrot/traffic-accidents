@@ -13,10 +13,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
-from sklearn.cluster import KMeans
 from mpl_toolkits.basemap import Basemap
-from amplpy import AMPL, Parameter
-from amplpy import DataFrame as adf
 import os
 import math
 
@@ -42,6 +39,9 @@ df = pd.DataFrame({
 
 # plot data for sample map
 plt.scatter(X, Y, c='black', s=7)
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.title('Unclustered Accident Data from 2017-2018')
 plt.show()
 
 # set up data
@@ -52,7 +52,8 @@ rows, columns = df.shape
 a = float(rows)/float(clusters)
 upb = int(math.ceil(a))
 lowb = int(math.floor(a))
-print upb, lowb
+up = upb
+low = lowb
 
 print centroids
 
@@ -63,6 +64,7 @@ from pyomo.opt import SolverFactory
 
 m = ConcreteModel()
 
+# Sets, Parameters, and Variables
 m.N = RangeSet(rows-1)
 m.M = RangeSet(columns-1)
 m.K = RangeSet(clusters-1)
@@ -73,19 +75,20 @@ point = df.iloc()
 
 m.y = Var(m.K,m.N,domain=Binary)
 
+# Constraints
 # Each point should belong to exactly one cluster
 def Assign_ea_point(m, j):
     return sum((m.y[i,j]) for i in m.K) == 1
 m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
 # Clusters should have upper and lower bounds on number of members
-def Cluster_size(m, i):
-    return (lowb-100, sum((m.y[i,j]) for j in m.N), upb+100)
-m.Size = Constraint(m.K, rule=Cluster_size)
+#def Cluster_size(m, i):
+#    return (low, sum((m.y[i,j]) for j in m.N), up)
+#m.Size = Constraint(m.K, rule=Cluster_size)
 
 # Objective function
 def ObjRule(m):
-    return sum((m.y[i,j] * sum((point[j,d]*point[j,d]-2*point[j,d]*s[i,d]+s[i,d]*s[i,d]) for d in m.M)) for i in m.K for j in m.N)
+    return sum((m.y[i,j] * sum((s[i,d]*s[i,d]-2*point[j,d]*s[i,d]) for d in m.M)) for i in m.K for j in m.N)
     
 m.Obj = Objective(rule=ObjRule, sense=minimize)
 opt = SolverFactory('glpk')
@@ -93,10 +96,26 @@ results = opt.solve(m)
 
 print results
 
+# plot results
+Xmin = X.min()
+Xmax = X.max()
+Ymin = Y.min()
+Ymax = Y.max()
 
-'''
-Partial Bibliography:
-https://mubaris.com/posts/kmeans-clustering/
-http://benalexkeen.com/k-means-clustering-in-python/
-https://arxiv.org/pdf/1308.4004.pdf
-'''
+Clust = np.array(clusters,rows)
+for i in range(1,clusters):
+    Clust[i] = sum((m.y[i,j]) for j in m.N)
+    
+fig = plt.figure(figsize=(10, 10))
+colmap = {1: 'C0', 2: 'C1', 3: 'C2', 4: 'C3', 5: 'C4', 6: 'C5', 7: 'C6', 8: 'C7', 9: 'C8', 10: 'C9'}
+colors = map(lambda x: colmap[x+1], Clust)
+
+plt.scatter(df['x'], df['y'], color=colors, alpha=0.5, edgecolor='k')
+for idx, centroid in enumerate(centroids):
+    plt.scatter(*centroid, color=colmap[idx+1])
+plt.xlim(Xmin, Xmax)
+plt.ylim(Ymin, Ymax)
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.title('Clustered Accident Data from 2017-2018')
+plt.show()
