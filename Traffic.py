@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from mpl_toolkits.basemap import Basemap
 import os
-import math
+from math import ceil, floor
 
 #load data
 C = pd.read_csv('data/traffic_accidents.csv', low_memory=False) # shape = (156467, 20)
@@ -23,7 +23,8 @@ C = pd.read_csv('data/traffic_accidents.csv', low_memory=False) # shape = (15646
 # eliminate rows with no accurate geolocation data
 xcriteria = C['GEO_LON'] <= -100
 ycriteria = C['GEO_LAT'] >= 30
-yearlim = C['REPORTED_DATE'] >= '2017-01-01 00:00:00'
+date = '2018-01-01 00:00:00'
+yearlim = C['REPORTED_DATE'] >= date
 criteria = xcriteria & ycriteria & yearlim
 C = C[criteria] 
 
@@ -41,7 +42,7 @@ df = pd.DataFrame({
 plt.scatter(X, Y, c='black', s=7)
 plt.xlabel('Longitude')
 plt.ylabel('Latitude')
-plt.title('Unclustered Accident Data from 2017-2018')
+plt.title('Unclustered Accident Data from ' + date)
 plt.show()
 
 # set up data
@@ -50,11 +51,12 @@ centroids = df.sample(clusters)
 centroids.reset_index(drop=True, inplace=True)
 rows, columns = df.shape
 a = float(rows)/float(clusters)
-upb = int(math.ceil(a))
-lowb = int(math.floor(a))
-up = upb
-low = lowb
+upb = int(ceil(a))
+lowb = int(floor(a))
+up = upb+500 #getting optimal results w/+/-1250 for 2017-2018 data; +/- 500 for 2018 data
+low = lowb-500
 
+print up, low
 print centroids
 
 # Use Pyomo
@@ -82,9 +84,9 @@ def Assign_ea_point(m, j):
 m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
 # Clusters should have upper and lower bounds on number of members
-#def Cluster_size(m, i):
-#    return (low, sum((m.y[i,j]) for j in m.N), up)
-#m.Size = Constraint(m.K, rule=Cluster_size)
+def Cluster_size(m, i):
+    return (low, sum((m.y[i,j]) for j in m.N), up)
+m.Size = Constraint(m.K, rule=Cluster_size)
 
 # Objective function
 def ObjRule(m):
@@ -96,26 +98,22 @@ results = opt.solve(m)
 
 print results
 
+
+
 # plot results
 Xmin = X.min()
 Xmax = X.max()
 Ymin = Y.min()
 Ymax = Y.max()
 
-Clust = np.array(clusters,rows)
+Clust = np.zeros(clusters)
 for i in range(1,clusters):
-    Clust[i] = sum((m.y[i,j]) for j in m.N)
+    Clust[i-1] = sum((m.y[i,j]) for j in m.N)
     
-fig = plt.figure(figsize=(10, 10))
-colmap = {1: 'C0', 2: 'C1', 3: 'C2', 4: 'C3', 5: 'C4', 6: 'C5', 7: 'C6', 8: 'C7', 9: 'C8', 10: 'C9'}
-colors = map(lambda x: colmap[x+1], Clust)
-
-plt.scatter(df['x'], df['y'], color=colors, alpha=0.5, edgecolor='k')
-for idx, centroid in enumerate(centroids):
-    plt.scatter(*centroid, color=colmap[idx+1])
+plt.scatter(df['x'], df['y'], c=Clust)
 plt.xlim(Xmin, Xmax)
 plt.ylim(Ymin, Ymax)
 plt.xlabel('Longitude')
 plt.ylabel('Latitude')
-plt.title('Clustered Accident Data from 2017-2018')
+plt.title('Clustered Accident Data from ' + date)
 plt.show()
