@@ -53,10 +53,10 @@ rows, columns = df.shape
 a = float(rows)/float(clusters)
 upb = int(ceil(a))
 lowb = int(floor(a))
-up = upb+500 #getting optimal results w/+/-1250 for 2017-2018 data; +/- 500 for 2018 data
+up = upb+500 #getting optimal results w/+/-1250 for 2017-2018 data; +/- 500 for 2018 data; +/- 80 for Sept-present data
 low = lowb-500
 
-print up, low
+print rows, up, low
 print centroids
 
 # Use Pyomo
@@ -98,19 +98,19 @@ results = opt.solve(m)
 
 print results
 
-
-
 # plot results
 Xmin = X.min()
 Xmax = X.max()
 Ymin = Y.min()
 Ymax = Y.max()
 
-Clust = np.zeros(clusters)
+cpalette = ['red','maroon','yellow','olive','lime','green','aqua','blue','fuchsia','purple']
+#add group labels
 for i in range(1,clusters):
-    Clust[i-1] = sum((m.y[i,j]) for j in m.N)
+    for j in range(1,rows):
+        if m.y[i,j] == 1:
+            plt.scatter(point[j,0], point[j,1], c=cpalette[i-1], s=7)
     
-plt.scatter(df['x'], df['y'], c=Clust)
 plt.xlim(Xmin, Xmax)
 plt.ylim(Ymin, Ymax)
 plt.xlabel('Longitude')
