@@ -1,6 +1,6 @@
 # traffic-accidents
-Script to collect and assign traffic accident data from years (2017-2018). 
-Original data taken from denvergov.org/opendata.
+Script to collect and assign traffic accident data to balanced clusters.<br> 
+Original data taken from the [Denver Open Data Catalog](https://www.denvergov.org/opendata/).<br>
 Does not take into account severity of incident.
 <br><br>
 Developed on Windows 10 using Python 2.7.x
