@@ -54,7 +54,7 @@ a = float(rows)/float(clusters)
 upb = int(ceil(a))
 lowb = int(floor(a))
 
-print rows, up, low
+print rows, upb, lowb
 print centroids
 
 # Use Pyomo
