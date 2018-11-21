@@ -53,8 +53,6 @@ rows, columns = df.shape
 a = float(rows)/float(clusters)
 upb = int(ceil(a))
 lowb = int(floor(a))
-up = upb+500 #getting optimal results w/+/-1250 for 2017-2018 data; +/- 500 for 2018 data; +/- 80 for Sept-present data
-low = lowb-500
 
 print rows, up, low
 print centroids
@@ -67,9 +65,9 @@ from pyomo.opt import SolverFactory
 m = ConcreteModel()
 
 # Sets, Parameters, and Variables
-m.N = RangeSet(rows-1)
-m.M = RangeSet(columns-1)
-m.K = RangeSet(clusters-1)
+m.N = RangeSet(0,rows-1)
+m.M = RangeSet(0,columns-1)
+m.K = RangeSet(0,clusters-1)
 
 # call data from Pandas dataFrame directly
 s = centroids.iloc()
@@ -85,7 +83,7 @@ m.Assign = Constraint(m.N, rule=Assign_ea_point)
 
 # Clusters should have upper and lower bounds on number of members
 def Cluster_size(m, i):
-    return (low, sum((m.y[i,j]) for j in m.N), up)
+    return (lowb, sum((m.y[i,j]) for j in m.N), upb)
 m.Size = Constraint(m.K, rule=Cluster_size)
 
 # Objective function
