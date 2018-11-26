@@ -104,7 +104,7 @@ Ymax = Y.max()
 
 cpalette = ['red','maroon','yellow','olive','lime','green','blue','fuchsia','purple','aqua']
 #add group labels
-for i in range(1,clusters+1):
+for i in range(1,clusters):
     for j in range(1,rows):
         if m.y[i,j] == 1:
             plt.scatter(point[j,0], point[j,1], c=cpalette[i], s=7)
