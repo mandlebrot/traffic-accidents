@@ -102,13 +102,13 @@ Xmax = X.max()
 Ymin = Y.min()
 Ymax = Y.max()
 
-cpalette = ['red','maroon','yellow','olive','lime','green','aqua','blue','fuchsia','purple']
+cpalette = ['red','maroon','yellow','olive','lime','green','blue','fuchsia','purple','aqua']
 #add group labels
-for i in range(1,clusters):
+for i in range(1,clusters+1):
     for j in range(1,rows):
         if m.y[i,j] == 1:
-            plt.scatter(point[j,0], point[j,1], c=cpalette[i-1], s=7)
-    
+            plt.scatter(point[j,0], point[j,1], c=cpalette[i], s=7)
+
 plt.xlim(Xmin, Xmax)
 plt.ylim(Ymin, Ymax)
 plt.xlabel('Longitude')
